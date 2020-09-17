@@ -20,12 +20,14 @@ class ReactiveStreamsPublisherTest {
 
     @Test
     void streaming() {
+        // Response는 publisher
         final HttpResponseWriter res = HttpResponse.streaming();
         res.write(ResponseHeaders.of(200));
         res.write(HttpData.ofUtf8("foo"));
         res.close();
         assert res instanceof Publisher;
 
+        // Response를 받는 aggregater는 subscriber
         final CompletableFuture<AggregatedHttpResponse> aggregated = res.aggregate();
         final AggregatedHttpResponse aggregatedHttpResponse = aggregated.join();
         System.err.println(aggregatedHttpResponse.headers().status());

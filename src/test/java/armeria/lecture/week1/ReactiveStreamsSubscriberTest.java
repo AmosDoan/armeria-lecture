@@ -4,11 +4,17 @@ import java.util.concurrent.CompletableFuture;
 
 import org.junit.jupiter.api.Test;
 import org.reactivestreams.Publisher;
+import org.reactivestreams.Subscriber;
+import org.reactivestreams.Subscription;
 
 import com.linecorp.armeria.common.AggregatedHttpResponse;
 import com.linecorp.armeria.common.HttpData;
+import com.linecorp.armeria.common.HttpObject;
 import com.linecorp.armeria.common.HttpResponse;
 import com.linecorp.armeria.common.ResponseHeaders;
+import com.linecorp.armeria.common.util.EventLoopGroups;
+
+import io.netty.channel.EventLoopGroup;
 
 class ReactiveStreamsSubscriberTest {
 
@@ -39,7 +45,48 @@ class ReactiveStreamsSubscriberTest {
     }
 
     private CompletableFuture<MyAggregatedHttpResponse> aggregate(HttpResponse res) {
-       return null;
+        final CompletableFuture<MyAggregatedHttpResponse> future = new CompletableFuture<>();
+
+        final EventLoopGroup executors = EventLoopGroups.newEventLoopGroup(1);
+        // subscribe는 future에 callback을 다는 것과 같다.
+        res.subscribe(new Subscriber<HttpObject>() {
+            Subscription s;
+            ResponseHeaders responseHeaders;
+            HttpData data;
+
+            @Override
+            public void onSubscribe(Subscription s) {
+                currentThreadName("onSubscribe");
+                this.s = s;
+                s.request(1);
+            }
+
+            @Override
+            public void onNext(HttpObject httpObject) {
+                currentThreadName("onNext");
+                if (httpObject instanceof ResponseHeaders) {
+                    responseHeaders = (ResponseHeaders) httpObject;
+                }
+
+                if (httpObject instanceof HttpData) {
+                    data = (HttpData) httpObject;
+                }
+
+                this.s.request(1);
+            }
+
+            @Override
+            public void onError(Throwable t) {
+                System.out.println("OnError");
+            }
+
+            @Override
+            public void onComplete() {
+                currentThreadName("onComplete");
+                future.complete(new MyAggregatedHttpResponse(responseHeaders, data));
+            }
+        }, executors.next());
+       return future;
     }
 
     private static void currentThreadName(String method) {

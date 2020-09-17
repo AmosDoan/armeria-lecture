@@ -10,13 +10,14 @@ public class SimpleServer {
     public static void main(String[] args) {
         final Server server = Server.builder()
                                     .http(8088)
-                                    .service("/hello", (ctx, req) -> HttpResponse.of(200))
+                                    .service("/hello", (ctx, req) -> HttpResponse.of("Hello"))
                                     .build();
         server.start().join();
         final WebClient client = WebClient.builder("http://127.0.0.1:8088/")
                                           .build();
         final AggregatedHttpResponse res = client.get("/hello").aggregate().join();
         System.err.println(res.headers());
+        System.err.println(res.contentUtf8());
         server.stop().join();
     }
 }
