@@ -1,5 +1,7 @@
 package armeria.lecture.week2;
 
+import com.google.common.base.Splitter;
+
 import com.linecorp.armeria.common.HttpRequest;
 import com.linecorp.armeria.common.HttpResponse;
 import com.linecorp.armeria.server.HttpService;
@@ -22,6 +24,8 @@ public class ProxyServer {
     }
 
     private static class ProxyService implements HttpService {
+        private Splitter csvSplitter = Splitter.on(",").trimResults().omitEmptyStrings();
+        private Splitter colonSplitter = Splitter.on(":").trimResults().omitEmptyStrings();
 
         @Override
         public HttpResponse serve(ServiceRequestContext ctx, HttpRequest req) throws Exception {
